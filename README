@@ -1,0 +1,20 @@
+==============================================================================
+telechat-py
+==============================================================================
+
+This project is an open source object-oriented Python Twisted rewrite of the 
+venerable  Telechat telnet chat server, used for many years on Hyperreal 
+(vrave), Spacebar, and Enormous Trousers.  Its functionality and commands are 
+based on the last version of the C-based chat server (telechat-ng v???).
+
+The project is hosted here:  http://github.com/skyepn/telechat-py
+
+Regards,
+Skye Nott <skye@F4.ca>
+
+------------------------------------------------------------------------------
+NEWS
+------------------------------------------------------------------------------
+
+2010-02-26: Project created on github largely due to prodding by jong and lens.
+
