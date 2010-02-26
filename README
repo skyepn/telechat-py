@@ -1,9 +1,10 @@
 ==============================================================================
-telechat-py
+Telechat-Py
 ==============================================================================
 
 http://github.com/skyepn/telechat-py
 
+Copyright 2010 Skye Nott, F4 Systems
 Released under the terms of the Apache License 2.0
 
 This project is an open source object-oriented Python Twisted rewrite of the 
@@ -28,7 +29,14 @@ Regards,
 Skye Nott <skye@F4.ca>
 
 ------------------------------------------------------------------------------
-NEWS
+Dependancies
+------------------------------------------------------------------------------
+
+Python 2.5		http://python.org/
+Twisted 9		http://twistedmatrix.com/trac/
+
+------------------------------------------------------------------------------
+News
 ------------------------------------------------------------------------------
 
 2010-02-26: Project created on github largely due to prodding by jong and lens.
