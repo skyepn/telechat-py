@@ -5,14 +5,16 @@ Telechat-Py
 http://github.com/skyepn/telechat-py
 
 Copyright 2010 Skye Nott, F4 Systems
-Released under the terms of the Apache License 2.0
+Released under the terms of the Apache License 2.0 (see LICENSE)
 
 This project is an open source object-oriented Python Twisted rewrite of the 
 venerable  Telechat telnet chat server, used for many years on Hyperreal 
 (vrave), Spacebar, and Enormous Trousers.  Its functionality and commands are 
 based on the last version of the C-based chat server (telechat-ng v0.9.5)
 written by Const Kaplinsky in 2000, which in turn was based on the original 
-Telechat.  Here's the old license header for old time's sake:
+Telechat.  Here's the original license header for old time's sake.  Note that
+Telechat-Py is a complete rewrite and does not use code from any previous
+projects, only the UI is similar.
 
 Telechat is Copyright 1996 Hyperreal.
 Based on code originally copyright 1992 Gary Grossman,
@@ -32,12 +34,12 @@ Skye Nott <skye@F4.ca>
 Dependancies
 ------------------------------------------------------------------------------
 
-Python 2.5		http://python.org/
-Twisted 9		http://twistedmatrix.com/trac/
+Python 2.5+     http://python.org/
+Twisted 8+      http://twistedmatrix.com/trac/
 
 ------------------------------------------------------------------------------
 News
 ------------------------------------------------------------------------------
 
-2010-02-26: Project created on github largely due to prodding by jong and lens.
+2010-02-26: Project started on github largely due to prodding by jong and lens.
 
