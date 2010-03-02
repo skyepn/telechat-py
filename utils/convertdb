@@ -11,6 +11,7 @@
 import sys
 import anydbm
 import whichdb
+import sqlite3
 
 if len(sys.argv) < 2:
     print "usage:", sys.argv[0], "[old-acct]"
