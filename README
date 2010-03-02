@@ -34,7 +34,7 @@ Skye Nott <skye@F4.ca>
 Dependancies
 ------------------------------------------------------------------------------
 
-Python 2.5+     http://python.org/
+Python 2.6+     http://python.org/
 Twisted 8+      http://twistedmatrix.com/trac/
 
 ------------------------------------------------------------------------------

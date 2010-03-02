@@ -7,20 +7,23 @@
 #import sys
 #sys.path.append('.')
 
-from twisted.application.internet import TCPServer
-from twisted.application.service import Application
-from telechat.factory import TelechatFactory
-from telechat.cred import TCRealm, createPortal
+from twisted.application import internet
+from twisted.application import service
+import telechat.factory
+import telechat.cred
+import telechat.const
+import telechat.config
 
 PORT = 8023  # TODO config file
 
 # ----------------------------------------------------------------------------
 
-r = TCRealm()
-p = createPortal(r)
+r = telechat.cred.TCRealm()
+config = telechat.config.TCConfig('TODO')
+p = telechat.cred.createPortal(r)
 
-application = Application("Telechat Server")
-f = TelechatFactory(p)
+application = service.Application(telechat.const.APPNAME + " Server")
+f = telechat.factory.TelechatFactory(p)
 f.protocol.factory = f
-tcService = TCPServer(PORT, f)
+tcService = internet.TCPServer(PORT, f)
 tcService.setServiceParent(application)

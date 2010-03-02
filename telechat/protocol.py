@@ -9,6 +9,16 @@ from random import random
 from twisted.conch import telnet
 from telechat.user import TCUser
 from telechat.channel import TCChannel
+from telechat.config import TCConfig
+import telechat.const
+
+LOGIN_HEADER = """
+These special user names can be used without logging on:
+   "n" or "new" to register as a new user,
+   "w" or "who" to see who is currently online,
+   "r" or "recent" to see who has been online recently,
+   "q" or "quit" to close connection immediately.
+"""
 
 # ----------------------------------------------------------------------------
 
@@ -35,9 +45,8 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
     # ----------------------------------------------------
 
     def __init__(self, username):
-        # TODO
-        self.user = TCUser()
-        self.user.username = username
+        self.user = TCUser(username)
+        # TODO factory lookup from username.channel
         self.channel = TCChannel()
 
     # ----------------------------------------------------
@@ -89,16 +98,12 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
 
     def telnet_PostLogin(self, data):
         self.transport.write("\r\n")
-        self.writeLine("** display telnet_PostLogin message here **") # TODO
+        self.transport.write(TCConfig().postlogin_msg)
         self.transport.factory.addClient(self)
         return 'Idle'
 
     def telnet_Idle(self, data):
-        print "Idle recv", repr(data)
-        if data == 'quit\r':  # XXX
-            self.transport.write('bye!\r\n')
-            self.transport.loseConnection()
-            return
+        #print "Idle recv", repr(data)
         eol = False
         for ch in data:
             eol = self.charReceived(ch)
@@ -106,7 +111,7 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
             return 'Typing'
             
     def telnet_Typing(self, data):
-        print "Typing recv", repr(data)
+        #print "Typing recv", repr(data)
         eol = False
         for ch in data:
             eol = self.charReceived(ch)
@@ -151,7 +156,10 @@ class TSAuthenticatingTelnetProtocol(telnet.AuthenticatingTelnetProtocol):
     
     def connectionMade(self):
         print "New connection from", self.transport.getPeer().host, "starting login"
-        self.transport.write("** pre-login message here**\r\n") # TODO
+        # TODO print version and NOTICE
+        self.transport.write('\r\n' + telechat.const.WELCOME_HEADER + '\r\n')
+        self.transport.write(TCConfig().prelogin_msg)
+        self.transport.write(LOGIN_HEADER + '\r\n')
         telnet.AuthenticatingTelnetProtocol.connectionMade(self)
         
     def telnet_User(self, line):
@@ -160,8 +168,10 @@ class TSAuthenticatingTelnetProtocol(telnet.AuthenticatingTelnetProtocol):
             # TODO
             special = True
         elif line == 'quit' or line == 'q':
-            # TODO
+            self.transport.write('bye!\r\n')
+            self.transport.loseConnection()
             special = True
+            return 'Discard'
         elif line == 'new' or line == 'n':
             # TODO
             special = True

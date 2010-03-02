@@ -7,6 +7,7 @@
 from twisted.internet.protocol import ServerFactory
 from twisted.conch.telnet import TelnetTransport
 from telechat.protocol import TSAuthenticatingTelnetProtocol
+from telechat.config import TCConfig
 
 MAX_CLIENTS = 512
 
@@ -35,20 +36,25 @@ class TelechatFactory(ServerFactory):
         return True
     
     def addClient(self, client):
+        # TODO check for duplicate user, kick off old (frozen) login
         self._clients.append(client)
         self.writeLineAll("-- Logged on channel %02d: %s/%s" % 
-                (client.channel.number, client.user.username, client.user.nickname))
+                (client.channel.number, client.user.id, client.user.handle))
         return True
         
     def removeClient(self, client):
         self._clients.remove(client)
         self.writeLineAll("-- DISCOnnected! channel %02d: %s/%s" % 
-                (client.channel.number, client.user.username, client.user.nickname))
+                (client.channel.number, client.user.id, client.user.handle))
         return True
     
     def lineReceived(self, client, line):
         # TODO channel
-        self.writeLineAll("%s/%s: %s" % (client.user.username, client.user.nickname, line))
+        self.writeLineAllFormatted(client, line)
+        
+    def writeLineAllFormatted(self, fromclient, line):
+        for c in self._clients:
+            c.writeLine(c.user.formatMessage(fromclient.user, line))
         
     def writeLineAll(self, line):
         for c in self._clients:
