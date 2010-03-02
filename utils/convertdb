@@ -7,22 +7,168 @@
 #
 # This script will convert old telechat-ng account and password databases to
 # the new telechat-py style database.
+#
+# Example:
+# convertdb ../../telechat-ng/acct.db ../../telechat-ng/pwd.db ../db/telechat.db
 
 import sys
+import os.path
 import anydbm
 import whichdb
+import sqlite3
+import crypt
+import struct
+import pprint
 
-if len(sys.argv) < 2:
-    print "usage:", sys.argv[0], "[old-acct]"
+VERBOSE = 0
+CREATE_EMPTY = 0
+CREATE_TABLES_SQL = """
+    CREATE TABLE users (
+        id          TEXT PRIMARY KEY NOT NULL,
+        password    TEXT NOT NULL,
+        handle      TEXT NOT NULL,
+        channel     INTEGER NOT NULL,
+        timezone    INTEGER NOT NULL,
+        width       INTEGER,
+        level       INTEGER NOT NULL,
+        nlchar      TEXT NOT NULL,
+        fmt_active      TEXT,
+        fmt_message     TEXT,
+        email           TEXT NOT NULL,
+        email_public    INTEGER NOT NULL,
+        created_ip      TEXT NOT NULL,
+        ts_created      INTEGER,
+        ts_last_logout  INTEGER,
+        verified        INTEGER NOT NULL
+    )
+"""
+
+if len(sys.argv) < 4:
+    print "usage:", sys.argv[0], "[old-acct-db] [old-pwd-db] [new-sqlite-db]"
     sys.exit(1)
 
-fn = sys.argv[1]
-print "opening", fn, "type", whichdb.whichdb(fn)
-db = anydbm.open(fn, 'r')
+acctfn  = sys.argv[1]
+pwdfn   = sys.argv[2]
+newfn   = sys.argv[3]
 
-k = db.firstkey()
+users = {}
+pp = pprint.PrettyPrinter(indent=4)
+
+print "opening", acctfn, "type", whichdb.whichdb(acctfn)
+acctdb = anydbm.open(acctfn, 'r')
+print "opening", pwdfn, "type", whichdb.whichdb(pwdfn)
+pwdb = anydbm.open(pwdfn, 'r')
+
+def fixstr(str):
+    # Unpacked strings are exactly the specified len, so truncate after
+    # the terminating null
+    ix = str.find('\x00')
+    #print 'was', str, 'now', str[:ix]
+    return str[0:ix]
+
+print "******** DOING ACCT DB ********"
+k = acctdb.firstkey()
 while k != None:
-    print k
-    k = db.nextkey(k)
+    buf = acctdb[k]
+    #print "buf len", len(buf)
+    (id,
+     handle,
+     chan,
+     tz,
+     width,
+     level,
+     nlchar,
+     optionbits, # don't bother unpacking... discard
+#     opt_pa_notify,
+#     opt_nostat,
+#     opt_newlines,
+#     opt_beeping,
+#     opt_usecolor,
+#     opt_msgcolor,
+     activefmt,
+     msgfmt, 
+     email_address, 
+     email_verified, 
+     email_public, 
+     created_from,
+     last_logout, 
+     last_typed) = struct.unpack('21s33shhiicB64s64s256sii256sii', buf)
 
-db.close()
+    id = fixstr(id)
+    users[id] = {
+        'handle'    : fixstr(handle),
+        'chan'      : chan,
+        'tz'        : tz,
+        'width'     : width,
+        'level'     : level,
+        'nlchar'    : nlchar,
+        'optionbits'    : optionbits,
+        'activefmt'     : fixstr(activefmt),
+        'msgfmt'        : fixstr(msgfmt),
+        'email_address' : fixstr(email_address),
+        'email_verified' : email_verified,
+        'email_public'  : email_public,
+        'created_from'  : fixstr(created_from),
+        'last_logout'   : last_logout,
+        'last_typed'    : last_typed
+    }
+    k = acctdb.nextkey(k)
+acctdb.close()
+
+print "******** DOING PWD DB ********"
+k = pwdb.firstkey()
+while k != None:
+    if k in users:
+        #print k, ':\t', pwdb[k]
+        users[k]['pwd'] = pwdb[k]
+    else:
+        print "---- SKIP pw no user", k
+    k = pwdb.nextkey(k)
+pwdb.close()
+
+print "******** WRITING NEW DB ********"
+if os.path.exists(newfn):
+    print "ERROR: output db file already exists"
+    sys.exit(1)
+dbcon = sqlite3.connect(newfn)
+dbcur = dbcon.cursor()
+
+dbcur.execute(CREATE_TABLES_SQL)
+dbcon.commit();
+
+for id in users:
+    if 'pwd' not in users[id]:
+        print "---- SKIP, no password", id
+        continue
+    if VERBOSE:
+        print id, ':\t', pp.pformat(users[id])
+    else:
+        print id,
+    dbcur.execute("""
+        INSERT INTO users
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+    """, (
+        id,
+        users[id]['pwd'],
+        users[id]['handle'],
+        users[id]['chan'],
+        users[id]['tz'],
+        users[id]['width'],
+        users[id]['level'],
+        users[id]['nlchar'],
+        users[id]['activefmt'],
+        users[id]['msgfmt'],
+        users[id]['email_address'],
+        users[id]['email_public'],
+        users[id]['created_from'],
+        users[id]['last_logout'],
+        users[id]['email_verified']
+    ))
+
+if not CREATE_EMPTY:
+    dbcon.commit();
+dbcur.close()
+dbcon.close()
+
+print "FINISHED."
+sys.exit()
