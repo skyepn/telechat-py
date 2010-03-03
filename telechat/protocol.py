@@ -4,12 +4,15 @@
 # Copyright (c) 2010 Skye Nott
 # See LICENSE for details.
 
+# TODO backspace and ^H, ^U delete line, ^W delete word
+
 from time import sleep
 from random import random
 from twisted.conch import telnet
 from telechat.user import TCUser
 from telechat.channel import TCChannel
 from telechat.config import TCConfig
+import telechat.input
 import telechat.const
 
 LOGIN_HEADER = """
@@ -39,7 +42,7 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
     
     channel     = None
     user        = None
-    _inbuf      = ''
+    _inhandler  = None
     _outbuf     = ''
     
     # ----------------------------------------------------
@@ -104,10 +107,11 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
 
     def telnet_Idle(self, data):
         #print "Idle recv", repr(data)
-        eol = False
+        complete = False
         for ch in data:
-            eol = self.charReceived(ch)
-        if not eol:
+            complete = self.charReceived(ch)
+        # What was the status of the last char in this chunk?
+        if not complete:
             return 'Typing'
             
     def telnet_Typing(self, data):
@@ -125,16 +129,18 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
 
     def charReceived(self, ch):
         # TODO flood protection
-        # TODO abstract receiver class - regular typing, commands, etc
-        if ch == '\r' or ch == '\n':
-            if len(self._inbuf) > 0:
-                self.transport.write("\r\n")
-                self.transport.factory.lineReceived(self, self._inbuf);
-                self._inbuf = ''
+        if self._inhandler is None:
+            factory = telechat.input.TCInputHandlerFactory(self)
+            self._inhandler = factory.factory(ch)
+            if self._inhandler is None:
+                return # Ignored character
+            #print "Got handler for char", ch, self._inhandler.__class__.__name__
+        self.transport.write(self._inhandler.process(ch))
+        if self._inhandler.isComplete():
+            self._inhandler = None
             return True
-        self._inbuf += ch
-        self.transport.write(ch)
-        return False
+        else:
+            return False
             
     def flushOutbuf(self):
         # Does NOT check self.state, use with caution.
@@ -146,9 +152,8 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
         if self.state in ('Idle', 'PostLogin'):
             self.transport.write(line + "\r\n")
         else:
-            # TODO outbut max size/truncation
+            # TODO outbuf max size/truncation.
             self._outbuf += line + "\r\n"
-
 
 # ----------------------------------------------------------------------------
 
@@ -157,18 +162,19 @@ class TSAuthenticatingTelnetProtocol(telnet.AuthenticatingTelnetProtocol):
     def connectionMade(self):
         print "New connection from", self.transport.getPeer().host, "starting login"
         # TODO print version and NOTICE
-        self.transport.write('\r\n' + telechat.const.WELCOME_HEADER + '\r\n')
+        self.transport.write('\r\n' + telechat.const.WELCOME_HEADER)
         self.transport.write(TCConfig().prelogin_msg)
         self.transport.write(LOGIN_HEADER + '\r\n')
         telnet.AuthenticatingTelnetProtocol.connectionMade(self)
         
     def telnet_User(self, line):
         special = False
+        line = line.lower().strip()
         if line == 'who' or line == 'w':
             # TODO
             special = True
         elif line == 'quit' or line == 'q':
-            self.transport.write('bye!\r\n')
+            self.transport.write('Goodbye!\r\n')
             self.transport.loseConnection()
             special = True
             return 'Discard'

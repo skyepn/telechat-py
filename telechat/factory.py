@@ -49,14 +49,21 @@ class TelechatFactory(ServerFactory):
         return True
     
     def lineReceived(self, client, line):
-        # TODO channel
-        self.writeLineAllFormatted(client, line)
+        self.writeLineChannelFormatted(client, line)
         
     def writeLineAllFormatted(self, fromclient, line):
         for c in self._clients:
             c.writeLine(c.user.formatMessage(fromclient.user, line))
         
+    def writeLineChannelFormatted(self, fromclient, line):
+        # TODO
+        self.writeLineAllFormatted(fromclient, line)
+
     def writeLineAll(self, line):
         for c in self._clients:
             c.writeLine(line)
+    
+    def writeLineChannel(self, fromclient, line):
+        # TODO
+        self.writeLineAll(line)
 

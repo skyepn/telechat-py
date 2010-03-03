@@ -15,7 +15,6 @@ LOG_FILENAME    = "log"
 PRELOGIN_FILENAME   = "prelogin.msg"
 POSTLOGIN_FILENAME  = "postlogin.msg"
 
-WELCOME_HEADER = APPNAME + ' ' + VERSION + """"
+WELCOME_HEADER = APPNAME + ' v' + VERSION + """
 Copyright (C) 2010 Skye Nott, F4 Systems
-Linked on TODO
 """
