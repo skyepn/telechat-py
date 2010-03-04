@@ -6,6 +6,9 @@
 
 import sqlite3
 
+# TODO persistent squelch/reverse
+# TODO add user disabled (security)
+
 USER_TABLE = 'users'
 VALID_COLUMNS = (
     'password',

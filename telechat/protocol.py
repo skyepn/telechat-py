@@ -9,11 +9,12 @@
 from time import sleep
 from random import random
 from twisted.conch import telnet
+from twisted.internet import protocol
 from telechat.user import TCUser
-from telechat.channel import TCChannel
 from telechat.config import TCConfig
 import telechat.input
 import telechat.const
+from telechat import channel
 
 LOGIN_HEADER = """
 These special user names can be used without logging on:
@@ -48,9 +49,7 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
     # ----------------------------------------------------
 
     def __init__(self, username):
-        self.user = TCUser(username)
-        # TODO factory lookup from username.channel
-        self.channel = TCChannel()
+        self.user = TCUser(username, self)
 
     # ----------------------------------------------------
 
@@ -82,19 +81,23 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
 
     def connectionMade(self):
         print "New authenticated connection from", self.transport.getPeer().host
-        if not self.transport.factory.isConnectionAllowed(self):
+        self.factory = self.transport.factory
+        # Authorization
+        if not self.factory.isConnectionAllowed(self):
             self.writeLine("Too many connections, try later") 
             self.transport.loseConnection()
             return
+        # Telnet options
         for opt in (telnet.SGA, telnet.ECHO):
             self.transport.will(opt)
+        # Change state
         self.state = 'PostLogin'
-        self.lineReceived(None) # trigger state change
+        self.lineReceived(None)
 
     def connectionLost(self, reason):
         print "Lost connection from", self.transport.getPeer().host
         if self.state not in ('User', 'Password'):
-            self.transport.factory.removeClient(self)
+            self.factory.removeClient(self)
         telnet.StatefulTelnetProtocol.connectionLost(self, reason)
         
     # ----------------------------------------------------
@@ -102,7 +105,15 @@ class TCSimpleProtocol(telnet.StatefulTelnetProtocol):
     def telnet_PostLogin(self, data):
         self.transport.write("\r\n")
         self.transport.write(TCConfig().postlogin_msg)
-        self.transport.factory.addClient(self)
+        # Initialize my channel
+        try:
+            self.channel = self.factory.joinChannel(self, self.user.channel, False)
+        except Exception, e:
+            #print "Login ch", self.user.channel, "failed", e
+            self.writeLine("-- Join channel %s failed, moving to channel %s" % (self.user.channel, channel.CHANNEL_DEFAULT))
+            self.channel = self.factory.joinChannel(self, channel.CHANNEL_DEFAULT)
+        # Let everyone know we're logged in
+        self.factory.addClient(self)
         return 'Idle'
 
     def telnet_Idle(self, data):

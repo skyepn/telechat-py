@@ -38,9 +38,7 @@ class TCInputHandler:
     
     def __init__(self, client, buffer):
         self._client    = client
-        self._inbuf     = buffer
-        if buffer is None:
-            self._inbuf = ''
+        self._inbuf     = buffer or ''
         self._complete  = False
     
     def process(self, ch):
@@ -130,9 +128,7 @@ class TCCommandInputHandler(TCInputHandler):
         if self._promptnum >= self._command.countPrompts():
             # No prompts, or all prompts completed. Checks every time just in
             # case the prompts for this command are dynamic.
-            echo = self._command.execute()
-            if echo is None:
-                echo = ''
+            echo = self._command.execute() or ''
             self._complete = True
         else:
             self._prompt = command.TCPrompt(self._command.getPrompt(self._promptnum))
@@ -141,13 +137,10 @@ class TCCommandInputHandler(TCInputHandler):
         return echo
         
     def dispatchPrompt(self, data):
-        exec "echo = self._command.prompt_" + self._prompt.name + "(data)"
+        exec "echo = self._command.prompt_" + self._prompt.name + "(data) or ''"
         self._promptnum += 1
         self._inbuf = ''
-        self.displayPrompt()
-        if echo is None:
-            return ''
-        else:
-            return echo
+        echo += self.displayPrompt() or ''
+        return echo
 
 

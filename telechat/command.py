@@ -6,6 +6,7 @@
 
 import time
 from telechat.user import *
+import telechat.channel
 
 COMMAND_CHAR        = '/'
 COMMAND_HELP_CHAR   = '?'
@@ -40,6 +41,7 @@ COMMAND_MAP         = (
 	('N',   'chname',       'channel',  USER_LEVEL_REGULAR, 'Name current channel'),
 	('U',   'chunname',     'channel',  USER_LEVEL_REGULAR, 'Un-name current channel'),
 
+	('V',   'verify',       'misc',     USER_LEVEL_NEW,     'Verify your email address'),
 	('t',   'time',         'misc',     USER_LEVEL_NEW,     'Display current time'),
 	('l',   'clear',        'misc',     USER_LEVEL_NEW,     'Clear screen'),
 	('V',   'version',      'misc',     USER_LEVEL_NEW,     'Print server version info'),
@@ -134,22 +136,26 @@ class TCCommand_emote(TCCommand):
     _prompts = (
         ('string', PROMPT_MODE_LINE, PROMPT_ECHO, "Action: "),
     )
-    _action = None
-    
     def execute(self):
         if self._string == '':
             return
-        self._client.transport.factory.writeLineChannel(
-                self._client, "** %s %s **" % (self._client.user.id, self._string))
+        self._client.factory.writeLineChannel(
+                self._client, self._client.channel,
+                "** %s %s **" % (self._client.user.id, self._string))
                 
+# ----------------------------------------------------------------------------
+
 class TCCommand_quit(TCPromptConfirmMixin, TCCommand):
     
     def execute(self):
         if not self._confirmed:
             return
         # TODO update db ts_last_logout
+        self._client.user.cleanQuit = True
         self._client.transport.loseConnection()
         return "Goodbye!\r\n"
+
+# ----------------------------------------------------------------------------
 
 class TCCommand_time(TCCommand):    
     
@@ -158,3 +164,23 @@ class TCCommand_time(TCCommand):
         # TODO time on
         return "System Time: " + time.ctime() + "\r\n"
 
+# ----------------------------------------------------------------------------
+
+class TCCommand_chan(TCCommand):
+    _prompts = (
+        ('string', PROMPT_MODE_LINE, PROMPT_ECHO, "Channel: "),
+    )
+    def execute(self):
+        if self._string == '':
+            return
+        try:
+            chan = self._client.factory.joinChannel(self._client, self._string)
+        except ValueError:
+            return telechat.channel.CHANNEL_VALID_MSG + "\r\n"
+        except Exception, e:
+            return str(e) + "\r\n"
+        self._client.factory.leaveChannel(self._client, self._client.channel)
+        self._client.channel = chan
+        return "Channel changed to %s.\r\n" % (chan.nameToStr(),)
+        
+# ----------------------------------------------------------------------------

@@ -16,14 +16,19 @@ USER_LEVEL_ADMIN    = 5
 # ----------------------------------------------------------------------------
 
 class TCUser:
-    id = None
+    id          = None
+    client      = None
+    cleanQuit   = False
 
-    def __init__(self, username):
+    def __init__(self, username, client):
         TCConfig().db.loadUser(username, self)
         #print "TCUser loaded:", self, self.__dict__
+        self.client = client
+        
+    def __str__(self):
+        return self.id
     
     def formatMessage(self, fromuser, message):
         # TODO parse self.fmt_message
         # TODO word wrap
         return "%s/%s: %s" % (fromuser.id, fromuser.handle, message)
-    
