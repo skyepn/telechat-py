@@ -28,7 +28,12 @@ class TCUser:
     def __str__(self):
         return self.id
     
-    def formatMessage(self, fromuser, message):
+    def formatMessage(self, user, message):
         # TODO parse self.fmt_message
         # TODO word wrap
-        return "%s/%s: %s" % (fromuser.id, fromuser.handle, message)
+        return "%s/%s: %s" % (user.id, user.handle, message)
+
+    def formatWho(self, user):
+        # TODO parse self.fmt_active
+        return "%s/%s [%s] todo" % (user.id, user.handle, user.email)
+

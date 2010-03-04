@@ -25,7 +25,7 @@ class TelechatFactory(ServerFactory):
     protocol    = None
     _portal     = None
     _clients    = []
-    _channels   = []
+    channels   = []
     
     def __init__(self, portal):
         self._portal = portal
@@ -68,14 +68,14 @@ class TelechatFactory(ServerFactory):
         chan = channel.TCNumberedChannel(1)
         chan.title = 'Main Floor'
         chan.persist = True
-        self._channels.append(chan)
+        self.channels.append(chan)
         chan = channel.TCNumberedChannel(2)
         chan.title = 'Chillout Room'
         chan.persist = True
-        self._channels.append(chan)
+        self.channels.append(chan)
         
     def findChannel(self, name):
-        for chan in self._channels:
+        for chan in self.channels:
             if chan.name == name:
                 return chan
         return None
@@ -90,18 +90,18 @@ class TelechatFactory(ServerFactory):
         else:
             # Create a new channel
             chan = channel.TCNumberedChannel(chname)
-            self._channels.append(chan)
+            self.channels.append(chan)
         chan.users.append(client.user)
         if showMessage:
             self.writeLineChannel(client, chan, "-- Joined channel %s: %s/%s" % (chan.nameToStr(), client.user.id, client.user.handle), True)
-        print "leaveChannel _channels now:\n\t", '\n\t'.join(map(str, self._channels))
+        #print "joinChannel channels now:\n\t", '\n\t'.join(map(str, self.channels))
         return chan
     
     def leaveChannel(self, client, chan, showMessage=True):
         print "user", client.user.id, "left channel", chan.name
         if client.user not in chan.users:
             raise KeyError, 'User not in channel!'
-        if chan not in self._channels:
+        if chan not in self.channels:
             raise KeyError, 'That channel does not exist!'
         chan.users.remove(client.user)
         if showMessage:
@@ -109,8 +109,12 @@ class TelechatFactory(ServerFactory):
         if len(chan.users) == 0 and not chan.persist:
             # Remove the channel
             print "leaveChannel destroy", chan.name
-            self._channels.remove(chan)
-        print "leaveChannel _channels now:\n\t", '\n\t'.join(map(str, self._channels))
+            self.channels.remove(chan)
+        print "leaveChannel channels now:\n\t", '\n\t'.join(map(str, self.channels))
+    
+    def getChannels(self):
+        # TODO return sorted list
+        return self.channels
     
     # --------------------------------------------------------------
 

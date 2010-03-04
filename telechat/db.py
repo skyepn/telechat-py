@@ -14,6 +14,29 @@ VALID_COLUMNS = (
     'password',
 ) # for getUserValue
 
+SCHEMA = """
+CREATE TABLE users (
+        id          TEXT PRIMARY KEY NOT NULL,
+        password    TEXT NOT NULL,
+        handle      TEXT NOT NULL,
+        channel     INTEGER NOT NULL,
+        timezone    INTEGER NOT NULL,
+        width       INTEGER,
+        level       INTEGER NOT NULL,
+        nlchar      TEXT NOT NULL,
+        fmt_active      TEXT,
+        fmt_message     TEXT,
+        email           TEXT NOT NULL,
+        email_public    INTEGER NOT NULL,
+        created_ip      TEXT NOT NULL,
+        ts_created      INTEGER,
+        ts_last_logout  INTEGER,
+        verified        INTEGER NOT NULL
+    );
+"""
+
+# ----------------------------------------------------------------------------
+
 class TCDB:
     
     _dbcon = None

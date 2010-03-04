@@ -40,7 +40,7 @@ CREATE_TABLES_SQL = """
         ts_created      INTEGER,
         ts_last_logout  INTEGER,
         verified        INTEGER NOT NULL
-    )
+    );
 """
 
 if len(sys.argv) < 4:

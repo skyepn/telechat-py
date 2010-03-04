@@ -5,6 +5,7 @@
 # See LICENSE for details.
 
 import time
+import random
 from telechat.user import *
 import telechat.channel
 
@@ -131,13 +132,16 @@ class TCPromptConfirmMixin:
             self._confirmed = True
 
 # ----------------------------------------------------------------------------
+# The Commands
+# ----------------------------------------------------------------------------
 
 class TCCommand_emote(TCCommand):
     _prompts = (
         ('string', PROMPT_MODE_LINE, PROMPT_ECHO, "Action: "),
     )
+    
     def execute(self):
-        if self._string == '':
+        if not self._string:
             return
         self._client.factory.writeLineChannel(
                 self._client, self._client.channel,
@@ -170,8 +174,9 @@ class TCCommand_chan(TCCommand):
     _prompts = (
         ('string', PROMPT_MODE_LINE, PROMPT_ECHO, "Channel: "),
     )
+    
     def execute(self):
-        if self._string == '':
+        if not self._string:
             return
         try:
             chan = self._client.factory.joinChannel(self._client, self._string)
@@ -182,5 +187,37 @@ class TCCommand_chan(TCCommand):
         self._client.factory.leaveChannel(self._client, self._client.channel)
         self._client.channel = chan
         return "Channel changed to %s.\r\n" % (chan.nameToStr(),)
+        
+# ----------------------------------------------------------------------------
+
+class TCCommand_who(TCCommand):
+    
+    def execute(self):
+        outbuf = str()
+        anonlist = list()
+        for chan in self._client.factory.getChannels():
+            if chan.title is not None:
+                outbuf += "Channel %s -- %s\r\n" % (chan.nameToStr(), chan.title)
+            if not len(chan.users):
+                outbuf += "\tempty\r\n"
+            else:
+                for user in chan.users:
+                    if chan.title is not None:
+                        outbuf += "\t" + self._client.user.formatWho(user) + "\r\n"
+                    else:
+                        # Show everything to admins
+                        if self._client.user.level >= USER_LEVEL_POWER:
+                            showchan = chan.nameToStr() + ": "
+                        else:
+                            showchan = str()
+                        anonlist.append("\t" + showchan + self._client.user.formatWho(user) + "\r\n")
+        if len(anonlist):
+            outbuf += "All other channels are unnamed or unused\r\n" 
+            if self._client.user.level >= USER_LEVEL_POWER:
+                outbuf += "(But I'll show you the channel numbers anyway)\r\n"
+            else:
+                random.shuffle(anonlist) # Randomize order for anonymity
+            outbuf += ''.join(anonlist)
+        return outbuf
         
 # ----------------------------------------------------------------------------
